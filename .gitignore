@@ -1,0 +1,48 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# --- Virtualenv ---
+.venv/
+venv/
+env/
+
+# --- FastAPI / Uvicorn ---
+*.log 
+
+# --- Environment / Secrets ---
+.env
+.env.local
+.env.development
+.env.production
+
+# --- VSCode / IDE ---
+.vscode/
+.idea/
+*.swp
+
+# --- OS files ---
+.DS_Store
+Thumbs.db
+
+# --- pytest / coverage ---
+.coverage
+htmlcov/
+.cache/
+
+# --- Bytecode cache ---
+__pycache__/
+
+# --- MyPy ---
+.mypy_cache/
+
+# --- Pydantic compiled models ---
+*.jsonschema
