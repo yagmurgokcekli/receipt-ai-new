@@ -1,3 +1,4 @@
+from datetime import date
 from typing import Optional
 from pydantic import BaseModel, Field
 from enum import Enum
@@ -9,7 +10,7 @@ class Engine(str, Enum):
 
 
 class ReceiptItem(BaseModel):
-    item_name: str = Field(
+    item_name: str | None = Field(
         description="Exact line item name or description as printed on the receipt. Do not normalize, translate, or infer."
     )
     item_quantity: Optional[float] = Field(
@@ -23,26 +24,29 @@ class ReceiptItem(BaseModel):
 
 
 class ReceiptAnalysis(BaseModel):
-    merchant_name: str = Field(
+    merchant_name: str | None = Field(
         description="Merchant or store name exactly as printed on the receipt. Do not infer brand names, branches, or locations."
     )
-    transaction_date: Optional[str] = Field(
+    transaction_date: Optional[date] = Field(
         default=None,
         description="Purchase date shown on the receipt, formatted as YYYY-MM-DD if possible. Return null if the date is missing, unreadable, or cannot be converted confidently.",
     )
-    total_price: float = Field(
+    tax: float | None = Field(
+        description="Total tax amount applied to the receipt. Return only the numeric value, without currency symbols or text."
+    )
+    total_price: float | None = Field(
         description="Grand total amount paid for the receipt. Return the numeric value only, without currency symbols or text."
     )
     currency: Optional[str] = Field(
         default=None,
         description="Currency code such as TRY, USD, or EUR, derived only from currency symbols or text explicitly visible on the receipt. Return null if the currency is not clearly stated.",
     )
+    items: Optional[list[ReceiptItem]] = None
 
 
 class Receipt(BaseModel):
     filename: Optional[str] = None
-    content_type: Optional[str] = None
-    sas_url: str 
+    blob_url: Optional[str] = None
+    sas_url: str
     engine: Engine
     analysis: Optional[ReceiptAnalysis] = None
-    items: Optional[list[ReceiptItem]] = None
