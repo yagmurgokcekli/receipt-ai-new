@@ -47,6 +47,5 @@ class ReceiptAnalysis(BaseModel):
 class Receipt(BaseModel):
     filename: Optional[str] = None
     blob_url: Optional[str] = None
-    sas_url: str
     engine: Engine
     analysis: Optional[ReceiptAnalysis] = None
