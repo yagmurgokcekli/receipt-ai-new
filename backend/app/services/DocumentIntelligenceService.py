@@ -25,6 +25,7 @@ class DocumentIntelligenceService:
     def _receipt_parser(self, receipt) -> ReceiptAnalysis:
         if not receipt:
             return ReceiptAnalysis(
+                source="di",
                 merchant_name=None,
                 transaction_date=None,
                 tax=None,
@@ -65,6 +66,7 @@ class DocumentIntelligenceService:
                 )
 
         return ReceiptAnalysis(
+            source="di",
             merchant_name=merchant_name,
             transaction_date=transaction_date,
             tax=tax,

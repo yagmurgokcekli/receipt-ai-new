@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 from enum import Enum
 
@@ -7,6 +7,7 @@ from enum import Enum
 class Engine(str, Enum):
     di = "di"
     openai = "openai"
+    compare = "compare"
 
 
 class ReceiptItem(BaseModel):
@@ -24,6 +25,9 @@ class ReceiptItem(BaseModel):
 
 
 class ReceiptAnalysis(BaseModel):
+    source: str = Field(
+        description="Source of the analysis: 'di' (document intelligence) or 'openai'."
+    )
     merchant_name: str | None = Field(
         description="Merchant or store name exactly as printed on the receipt. Do not infer brand names, branches, or locations."
     )
@@ -48,4 +52,4 @@ class Receipt(BaseModel):
     filename: Optional[str] = None
     blob_url: Optional[str] = None
     engine: Engine
-    analysis: Optional[ReceiptAnalysis] = None
+    analysis: Optional[List[ReceiptAnalysis]] = None

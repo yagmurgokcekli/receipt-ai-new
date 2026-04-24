@@ -20,7 +20,10 @@ class OpenAIService:
         response = self._get_client().beta.chat.completions.parse(
             model=self.model,
             messages=[
-                {"role": "system", "content": "You are a receipt data extraction system. Extract structured information from receipt images."},
+                {
+                    "role": "system",
+                    "content": "You are a receipt data extraction system. Extract structured information from receipt images.",
+                },
                 {
                     "role": "user",
                     "content": [
@@ -39,6 +42,8 @@ class OpenAIService:
 
         if parsed_receipt is None:
             raise ValueError("OpenAI could not parse the receipt.")
+
+        parsed_receipt.source = "openai"
 
         return parsed_receipt
 
