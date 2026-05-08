@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     AZURE_OPENAI_ENDPOINT: str
     AZURE_OPENAI_API_KEY: str
     AZURE_OPENAI_DEPLOYMENT: str
+    # azure sql database
+    AZURE_SQL_CONNECTIONSTRING: str
 
     @field_validator("*")
     def is_empty(cls, value, info):
@@ -32,4 +34,4 @@ class Settings(BaseSettings):
         return value
 
 
-settings = Settings()  # type:ignore
+settings = Settings()  # type: ignore

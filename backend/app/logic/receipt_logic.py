@@ -1,21 +1,28 @@
 import asyncio
 from fastapi import UploadFile
+from sqlalchemy.orm import Session
 
 from ..services.BlobStorageService import blob_storage_service
 from ..services.DocumentIntelligenceService import document_intelligence_service
 from ..services.OpenAIService import openai_service
 from ..schemas.receipt_schema import Engine, Receipt, AnalysisResult
+from ..database import crud
 
 
-async def process_receipt(engine: Engine, file: UploadFile) -> Receipt:
+async def process_receipt(engine: Engine, file: UploadFile, db: Session) -> Receipt:
     blob = blob_storage_service.save_to_blob(await file.read())
     analysis = await analyze_receipt(engine, blob.sas_url)
 
-    return Receipt(
+    receipt_response = Receipt(
+        filename=file.filename,
         blob=blob,
         engine=engine,
         analysis=analysis,
     )
+
+    crud.create_receipt(db=db, receipt_data=receipt_response)
+
+    return receipt_response
 
 
 async def analyze_receipt(engine: Engine, sas_url: str) -> AnalysisResult:
