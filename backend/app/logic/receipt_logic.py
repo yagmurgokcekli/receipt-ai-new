@@ -9,7 +9,7 @@ from ..schemas.receipt_schema import Engine, Receipt, AnalysisResult
 from ..database import crud
 
 
-async def process_receipt(engine: Engine, file: UploadFile, db: Session) -> Receipt:
+async def process_receipt(engine: Engine, file: UploadFile, db: Session):
     blob = blob_storage_service.save_to_blob(await file.read())
     analysis = await analyze_receipt(engine, blob.sas_url)
 
@@ -20,9 +20,9 @@ async def process_receipt(engine: Engine, file: UploadFile, db: Session) -> Rece
         analysis=analysis,
     )
 
-    crud.create_receipt(db=db, receipt_data=receipt_response)
+    created_receipt = crud.create_receipt(db=db, receipt_data=receipt_response)
 
-    return receipt_response
+    return created_receipt
 
 
 async def analyze_receipt(engine: Engine, sas_url: str) -> AnalysisResult:
@@ -51,3 +51,15 @@ async def analyze_receipt(engine: Engine, sas_url: str) -> AnalysisResult:
         )
 
     raise ValueError(f"Unsupported engine: {engine}")
+
+
+def get_receipt_by_id_logic(db: Session, receipt_id: int):
+    return crud.get_receipt_by_id(db, receipt_id)
+
+
+def get_receipts_logic(db: Session, skip: int = 0, limit: int = 100):
+    return crud.get_receipts(db, skip, limit)
+
+
+def delete_receipt_logic(db: Session, receipt_id: int) -> bool:
+    return crud.delete_receipt(db, receipt_id)

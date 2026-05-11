@@ -2,13 +2,13 @@ from fastapi import Depends, HTTPException, UploadFile, APIRouter
 from sqlalchemy.orm import Session
 
 from ..schemas.receipt_schema import Engine
-from ..logic.receipt_logic import process_receipt
-from ..database.session import get_db
-from ..database.crud import (
-    get_receipt_by_id,
-    get_receipts,
-    delete_receipt,
+from ..logic.receipt_logic import (
+    delete_receipt_logic,
+    get_receipt_by_id_logic,
+    get_receipts_logic,
+    process_receipt,
 )
+from ..database.session import get_db
 
 router = APIRouter()
 
@@ -27,7 +27,7 @@ def read_receipt(
     receipt_id: int,
     db: Session = Depends(get_db),
 ):
-    receipt = get_receipt_by_id(db, receipt_id)
+    receipt = get_receipt_by_id_logic(db, receipt_id)
 
     if receipt is None:
         raise HTTPException(
@@ -44,7 +44,7 @@ def read_receipts(
     limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    return get_receipts(db, skip, limit)
+    return get_receipts_logic(db, skip, limit)
 
 
 @router.delete("/receipt/{receipt_id}")
@@ -52,7 +52,7 @@ def remove_receipt(
     receipt_id: int,
     db: Session = Depends(get_db),
 ):
-    deleted = delete_receipt(db, receipt_id)
+    deleted = delete_receipt_logic(db, receipt_id)
 
     if not deleted:
         raise HTTPException(

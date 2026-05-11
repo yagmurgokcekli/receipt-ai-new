@@ -1,4 +1,6 @@
-from sqlalchemy.exc import SQLAlchemyError
+import asyncio
+
+from sqlalchemy.exc import SQLAlchemyError, OperationalError, DBAPIError
 from sqlalchemy.orm import Session
 
 from ..database.models import Receipt, ReceiptAnalysis, ReceiptItem
@@ -29,9 +31,20 @@ def create_receipt(db: Session, receipt_data: ReceiptSchema) -> Receipt:
 
         return receipt
 
-    except SQLAlchemyError as e:
+    except (
+        SQLAlchemyError,
+        OperationalError,
+        DBAPIError,
+        TimeoutError,
+        ConnectionError,
+        asyncio.TimeoutError,
+    ) as e:
         db.rollback()
         raise RuntimeError(f"Database operation failed: {str(e)}") from e
+
+    except Exception as e:
+        db.rollback()
+        raise RuntimeError(f"Unexpected database-related error: {str(e)}") from e
 
 
 def _create_analysis(analysis_data) -> ReceiptAnalysis:
@@ -54,7 +67,7 @@ def _create_analysis(analysis_data) -> ReceiptAnalysis:
 
 
 def get_receipt_by_id(db: Session, receipt_id: int) -> Receipt | None:
-    return db.query(Receipt).filter(Receipt.id == receipt_id).first()
+    return db.get(Receipt, receipt_id)
 
 
 def get_receipts(db: Session, skip: int = 0, limit: int = 100) -> list[Receipt]:
@@ -73,6 +86,11 @@ def delete_receipt(db: Session, receipt_id: int) -> bool:
 
         return True
 
-    except SQLAlchemyError as e:
+    except (
+        SQLAlchemyError,
+        TimeoutError,
+        ConnectionError,
+        asyncio.TimeoutError,
+    ) as e:
         db.rollback()
-        raise RuntimeError("Database operation failed") from e
+        raise RuntimeError(f"Database operation failed: {str(e)}") from e
