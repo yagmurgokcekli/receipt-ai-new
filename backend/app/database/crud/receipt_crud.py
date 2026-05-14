@@ -1,10 +1,10 @@
 import asyncio
 
 from sqlalchemy.exc import SQLAlchemyError, OperationalError, DBAPIError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
-from ..database.models import Receipt, ReceiptAnalysis, ReceiptItem
-from ..schemas.receipt_schema import Receipt as ReceiptSchema
+from ..models import Receipt, ReceiptAnalysis
+from ...schemas.receipt_schema import Receipt as ReceiptSchema
 
 
 def create_receipt(db: Session, receipt_data: ReceiptSchema) -> Receipt:
@@ -14,16 +14,7 @@ def create_receipt(db: Session, receipt_data: ReceiptSchema) -> Receipt:
             blob_name=receipt_data.blob.blob_name,
             container_name=receipt_data.blob.container_name,
             engine=receipt_data.engine.value,
-            analyses=[],
         )
-
-        if receipt_data.analysis.di_result is not None:
-            receipt.analyses.append(_create_analysis(receipt_data.analysis.di_result))
-
-        if receipt_data.analysis.openai_result is not None:
-            receipt.analyses.append(
-                _create_analysis(receipt_data.analysis.openai_result)
-            )
 
         db.add(receipt)
         db.commit()
@@ -47,31 +38,24 @@ def create_receipt(db: Session, receipt_data: ReceiptSchema) -> Receipt:
         raise RuntimeError(f"Unexpected database-related error: {str(e)}") from e
 
 
-def _create_analysis(analysis_data) -> ReceiptAnalysis:
-    return ReceiptAnalysis(
-        source=analysis_data.source.value,
-        merchant_name=analysis_data.merchant_name,
-        transaction_date=analysis_data.transaction_date,
-        tax=analysis_data.tax,
-        total_price=analysis_data.total_price,
-        currency=analysis_data.currency,
-        items=[
-            ReceiptItem(
-                item_name=item.item_name,
-                item_quantity=item.item_quantity,
-                line_price=item.line_price,
-            )
-            for item in (analysis_data.items or [])
-        ],
+def get_receipt_by_id(db: Session, receipt_id: int) -> Receipt | None:
+    return (
+        db.query(Receipt)
+        .options(selectinload(Receipt.analyses).selectinload(ReceiptAnalysis.items))
+        .filter(Receipt.id == receipt_id)
+        .first()
     )
 
 
-def get_receipt_by_id(db: Session, receipt_id: int) -> Receipt | None:
-    return db.get(Receipt, receipt_id)
-
-
 def get_receipts(db: Session, skip: int = 0, limit: int = 100) -> list[Receipt]:
-    return db.query(Receipt).order_by(Receipt.id).offset(skip).limit(limit).all()
+    return (
+        db.query(Receipt)
+        .options(selectinload(Receipt.analyses).selectinload(ReceiptAnalysis.items))
+        .order_by(Receipt.id)
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
 
 
 def delete_receipt(db: Session, receipt_id: int) -> bool:
@@ -88,6 +72,8 @@ def delete_receipt(db: Session, receipt_id: int) -> bool:
 
     except (
         SQLAlchemyError,
+        OperationalError,
+        DBAPIError,
         TimeoutError,
         ConnectionError,
         asyncio.TimeoutError,
