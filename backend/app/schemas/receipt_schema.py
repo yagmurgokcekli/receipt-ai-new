@@ -66,6 +66,7 @@ class Blob(BaseModel):
 
 
 class Receipt(BaseModel):
+    filename: str | None = None
     blob: Blob
     engine: Engine
     analysis: AnalysisResult

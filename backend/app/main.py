@@ -1,7 +1,6 @@
 from fastapi import FastAPI
 from .api import receipt_api
 
-
 app = FastAPI()
 
 
