@@ -20,6 +20,13 @@ class Settings(BaseSettings):
     AZURE_OPENAI_DEPLOYMENT: str
     # azure sql database
     AZURE_SQL_CONNECTIONSTRING: str
+    # azure ad
+    AZURE_CLIENT_ID: str
+    AZURE_TENANT_ID: str
+    AZURE_AUTHORITY: str
+    REDIRECT_URI: str
+    AZURE_AUDIENCE: str
+    AZURE_ISSUER: str
 
     @field_validator("*")
     def is_empty(cls, value, info):

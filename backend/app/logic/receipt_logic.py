@@ -1,17 +1,21 @@
 import asyncio
+
 from fastapi import UploadFile
 from sqlalchemy.orm import Session
 
+from ..database.crud import analysis_crud, receipt_crud
+from ..database.models import Receipt as ReceiptModel
+from ..schemas.receipt_schema import AnalysisResult, Engine, Receipt
 from ..services.BlobStorageService import blob_storage_service
 from ..services.DocumentIntelligenceService import document_intelligence_service
 from ..services.OpenAIService import openai_service
-from ..schemas.receipt_schema import Engine, Receipt, AnalysisResult
-from ..database.crud import receipt_crud, analysis_crud
-from ..database.models import Receipt as ReceiptModel
 
 
 async def process_receipt(
-    engine: Engine, file: UploadFile, db: Session
+    engine: Engine,
+    file: UploadFile,
+    db: Session,
+    user_id: int,
 ) -> ReceiptModel | None:
     blob = blob_storage_service.save_to_blob(await file.read())
     analysis = await analyze_receipt(engine, blob.sas_url)
@@ -26,6 +30,7 @@ async def process_receipt(
     created_receipt = receipt_crud.create_receipt(
         db=db,
         receipt_data=receipt_response,
+        user_id=user_id,
     )
 
     analysis_crud.create_receipt_analyses(
@@ -37,6 +42,7 @@ async def process_receipt(
     return receipt_crud.get_receipt_by_id(
         db=db,
         receipt_id=created_receipt.id,
+        user_id=user_id,
     )
 
 
@@ -51,14 +57,8 @@ async def analyze_receipt(engine: Engine, sas_url: str) -> AnalysisResult:
 
     elif engine == Engine.compare:
         di_result, openai_result = await asyncio.gather(
-            asyncio.to_thread(
-                document_intelligence_service.analyze_receipt,
-                sas_url,
-            ),
-            asyncio.to_thread(
-                openai_service.analyze_receipt,
-                sas_url,
-            ),
+            asyncio.to_thread(document_intelligence_service.analyze_receipt, sas_url),
+            asyncio.to_thread(openai_service.analyze_receipt, sas_url),
         )
         return AnalysisResult(
             di_result=di_result,
@@ -68,13 +68,26 @@ async def analyze_receipt(engine: Engine, sas_url: str) -> AnalysisResult:
     raise ValueError(f"Unsupported engine: {engine}")
 
 
-def get_receipt_by_id_logic(db: Session, receipt_id: int):
-    return receipt_crud.get_receipt_by_id(db, receipt_id)
+def get_receipt_by_id_logic(
+    db: Session,
+    receipt_id: int,
+    user_id: int,
+) -> ReceiptModel | None:
+    return receipt_crud.get_receipt_by_id(db, receipt_id, user_id)
 
 
-def get_receipts_logic(db: Session, skip: int = 0, limit: int = 100):
-    return receipt_crud.get_receipts(db, skip, limit)
+def get_receipts_logic(
+    db: Session,
+    user_id: int,
+    skip: int = 0,
+    limit: int = 100,
+) -> list[ReceiptModel]:
+    return receipt_crud.get_receipts(db, user_id, skip, limit)
 
 
-def delete_receipt_logic(db: Session, receipt_id: int) -> bool:
-    return receipt_crud.delete_receipt(db, receipt_id)
+def delete_receipt_logic(
+    db: Session,
+    receipt_id: int,
+    user_id: int,
+) -> bool:
+    return receipt_crud.delete_receipt(db, receipt_id, user_id)
