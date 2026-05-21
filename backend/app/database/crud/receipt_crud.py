@@ -7,9 +7,14 @@ from ..models import Receipt, ReceiptAnalysis
 from ...schemas.receipt_schema import Receipt as ReceiptSchema
 
 
-def create_receipt(db: Session, receipt_data: ReceiptSchema) -> Receipt:
+def create_receipt(
+    db: Session,
+    receipt_data: ReceiptSchema,
+    user_id: int,
+) -> Receipt:
     try:
         receipt = Receipt(
+            user_id=user_id,
             filename=receipt_data.filename,
             blob_name=receipt_data.blob.blob_name,
             container_name=receipt_data.blob.container_name,
@@ -33,24 +38,33 @@ def create_receipt(db: Session, receipt_data: ReceiptSchema) -> Receipt:
         db.rollback()
         raise RuntimeError(f"Database operation failed: {str(e)}") from e
 
-    except Exception as e:
-        db.rollback()
-        raise RuntimeError(f"Unexpected database-related error: {str(e)}") from e
 
-
-def get_receipt_by_id(db: Session, receipt_id: int) -> Receipt | None:
+def get_receipt_by_id(
+    db: Session,
+    receipt_id: int,
+    user_id: int,
+) -> Receipt | None:
     return (
         db.query(Receipt)
         .options(selectinload(Receipt.analyses).selectinload(ReceiptAnalysis.items))
-        .filter(Receipt.id == receipt_id)
+        .filter(
+            Receipt.id == receipt_id,
+            Receipt.user_id == user_id,
+        )
         .first()
     )
 
 
-def get_receipts(db: Session, skip: int = 0, limit: int = 100) -> list[Receipt]:
+def get_receipts(
+    db: Session,
+    user_id: int,
+    skip: int = 0,
+    limit: int = 100,
+) -> list[Receipt]:
     return (
         db.query(Receipt)
         .options(selectinload(Receipt.analyses).selectinload(ReceiptAnalysis.items))
+        .filter(Receipt.user_id == user_id)
         .order_by(Receipt.id)
         .offset(skip)
         .limit(limit)
@@ -58,9 +72,13 @@ def get_receipts(db: Session, skip: int = 0, limit: int = 100) -> list[Receipt]:
     )
 
 
-def delete_receipt(db: Session, receipt_id: int) -> bool:
+def delete_receipt(
+    db: Session,
+    receipt_id: int,
+    user_id: int,
+) -> bool:
     try:
-        receipt = get_receipt_by_id(db, receipt_id)
+        receipt = get_receipt_by_id(db, receipt_id, user_id)
 
         if receipt is None:
             return False
